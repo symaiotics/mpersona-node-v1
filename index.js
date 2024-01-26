@@ -50,7 +50,7 @@ app.use('/artifacts', require('./routes/knowledgeMapping/artifacts.js'));
 
 //Server side managed models
 app.use('/models', require('./routes/models.js'));
-
+app.use('/stats', require('./routes/stats.js'));
 
 //Establish a 404 Not Found Custom Response
 app.use((req, res, next) => {
