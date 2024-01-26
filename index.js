@@ -52,6 +52,8 @@ app.use('/artifacts', require('./routes/knowledgeMapping/artifacts.js'));
 app.use('/models', require('./routes/models.js'));
 app.use('/stats', require('./routes/stats.js'));
 
+//Added the version increment to the git hook
+
 //Establish a 404 Not Found Custom Response
 app.use((req, res, next) => {
     const error = new Error('This site was not found. Perhaps you want to call login?');

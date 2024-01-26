@@ -1,16 +1,14 @@
 {
   "name": "mpersona-node",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Interact with persistent evolving personas",
   "main": "index.js",
   "scripts": {},
-
   "nodemonConfig": {
     "ignore": [
       "*.log"
     ]
   },
-
   "keywords": [
     "graph",
     "ai",
