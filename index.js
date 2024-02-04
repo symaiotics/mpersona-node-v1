@@ -52,6 +52,9 @@ app.use('/artifacts', require('./routes/knowledgeMapping/artifacts.js'));
 app.use('/models', require('./routes/models.js'));
 app.use('/stats', require('./routes/stats.js'));
 
+//Administrative cleanup based on email or username matching
+app.use('/clean', require('./routes/clean.js'));
+
 //Added the version increment to the git hook
 
 //Establish a 404 Not Found Custom Response
