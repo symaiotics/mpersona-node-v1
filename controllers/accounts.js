@@ -63,7 +63,7 @@ exports.createNewAccount = async function (req, res, next) {
         notes: req.body.notes || req.query.notes || req.params.notes || null,
         preferredLng: req.body.preferredLng || req.query.preferredLng || req.params.preferredLng || 'en',
         roles: ['user'],
-        active: true,
+        status: 'active',
         momentCreated: new Date(),
     }
 

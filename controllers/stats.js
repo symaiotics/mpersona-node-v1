@@ -11,7 +11,7 @@ const packageInfo = require('../package.json');
 exports.getStats = async function (req, res, next) {
     try {
         // Use countDocuments() to get the count of active documents
-        const accountCount = await Account.countDocuments({active: true});
+        const accountCount = await Account.countDocuments({status: "active"});
         const personaCount = await Persona.countDocuments({status: "active"});
         const version = packageInfo.version;
 
