@@ -8,7 +8,7 @@ var AccountSchema = new mongoose.Schema(
     username: { type: String, unique: true, required: true }, //the unique username of this user
     password: { type: String, required: true }, //a hashed password
     salt: { type: String, required: true }, //a salt for the password
-    email: { type: String, required: true, unique: true }, //the unique email of this account
+    email: { type: String, required: false, unique: true }, //the unique email of this account
     useCase: { type: String, required: false },
     notes: { type: String, required: false },
     preferredLng: { type: String, required: false }, //the user's preferred language code
