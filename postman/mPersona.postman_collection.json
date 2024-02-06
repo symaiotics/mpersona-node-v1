@@ -203,6 +203,19 @@
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "administrative",
+			"item": [
+				{
+					"name": "clean",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				}
+			]
 		}
 	]
 }
