@@ -20,8 +20,8 @@ var AccountSchema = new mongoose.Schema(
     // active: { type: Boolean, required: true }, //active:false means the account is paused or suspend the account temporarily
 
     //Free characters to start
-    freeCharacters: { type: Number, required: false, default: 1000000 }, //the user's free characters, defaults to 1M
-    useFreeCharacters: { type: Number, required: false }, //the user's free characters
+    freeCharacters: { type: Number, required: false, default: process.env.FREE_CHARACTERS }, //the user's free characters, defaults to 1M
+    usedFreeCharacters: { type: Number, required: false, default: 0 }, //the user's free characters
 
     //BYOK
     openAiApiKey: { type: String, required: false },
