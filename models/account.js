@@ -20,8 +20,12 @@ var AccountSchema = new mongoose.Schema(
     // active: { type: Boolean, required: true }, //active:false means the account is paused or suspend the account temporarily
 
     //Free characters to start
-    freeCharacters: { type: Number, required: false, default: process.env.FREE_CHARACTERS }, //the user's free characters, defaults to 1M
-    usedFreeCharacters: { type: Number, required: false, default: 0 }, //the user's free characters
+    characterReserve: {
+      type: Number,
+      required: false,
+      default: process.env.CHARACTERS_RESERVE_DEFAULT,
+    },
+    charactersUsed: { type: Number, required: false, default: 0 },
 
     //BYOK
     openAiApiKey: { type: String, required: false },
@@ -29,9 +33,23 @@ var AccountSchema = new mongoose.Schema(
     azureOpenAiApiKey: { type: String, required: false },
     azureOpenAiApiEndpoint: { type: String, required: false },
 
-    status: {
+    //Subscription, if you want to add this
+    subscriptionType: { type: String, default: "free", required: false },
+    subscriptionDate: { type: Date, required: false },
+    subscriptionStatus: {
       type: String,
       enum: ["active", "inactive"],
+      default: "inactive",
+    },
+    //Subscription history, if operating this as a SaaS
+    subscriptionHistory: {
+      type: [Object],
+      required: false,
+    },
+
+    status: {
+      type: String,
+      enum: ["active", "inactive","deleted"],
       default: "active",
     },
 

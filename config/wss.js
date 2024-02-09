@@ -13,15 +13,15 @@ async function verifyTokenAndAccount(token) {
   return new Promise(async (resolve, reject) => {
     try {
       let tokenDecoded = authenticateAndDecode(token);
-      console.log(tokenDecoded);
+      // console.log("tokenDecoded", tokenDecoded);
       if (tokenDecoded) {
         const account = await Account.findOne({
           username: tokenDecoded.username,
         });
         if (account) resolve(account);
-        reject(false);
+        else resolve(null);
       } else {
-        reject(false);
+         resolve(null);
       }
     } catch (error) {
       reject(error);
@@ -33,7 +33,7 @@ async function incrementUsedCharacters(account, characters) {
   try {
     await Account.updateOne(
       { uuid: account.uuid },
-      { $set: { usedFreeCharacters: account.usedFreeCharacters + characters } }
+      { $set: { charactersUsed: account.charactersUsed + characters } }
     );
   } catch (error) {}
 }
@@ -164,8 +164,8 @@ const createWebSocketServer = (server) => {
   };
 
   const handleAzureOpenAiPrompt = async (model, messages, promptConfig) => {
-    console.log({ model, messages, promptConfig });
-    const responseStream = await azureOpenAiClient.listChatCompletions(
+    // console.log({ model, messages, promptConfig });
+    const responseStream = await azureOpenAiClient.streamChatCompletions(
       model,
       messages,
       promptConfig
@@ -255,14 +255,14 @@ const createWebSocketServer = (server) => {
             let hasCharacters = true;
 
             if (data.token) account = await verifyTokenAndAccount(data.token);
-            console.log(account);
+            console.log("Account", account);
             //Count the text characters used and add them to the account
 
             if (account) {
-              if (!account.freeCharacters) account.freeCharacters = process.env.FREE_CHARACTERS;
-              if (!account.usedFreeCharacters) account.usedFreeCharacters = 0;
+              if (!account.characterReserve) account.characterReserve = process.env.CHARACTERS_RESERVE_DEFAULT;
+              if (!account.charactersUsed) account.charactersUsed = 0;
 
-              console.log(account);
+              console.log("account",account);
               let messageLength = 0;
               if (data.messageHistory)
               //Read the text content
@@ -276,7 +276,7 @@ const createWebSocketServer = (server) => {
                 messageLength =
                   data.userPrompt.length + data.systemPrompt.length;
 
-              if (account.usedFreeCharacters < account.freeCharacters) {
+              if (account.charactersUsed < account.characterReserve) {
                 incrementUsedCharacters(account, messageLength);
                 //proceeed with prompt
               } else {
@@ -285,13 +285,13 @@ const createWebSocketServer = (server) => {
                   data.uuid,
                   data.session,
                   "ERROR",
-                  "All out of free tokens. Add your own API key to continue to use this service freely."
+                  "You've used your entire reserve of characters. Add your own API key to continue to use this service freely."
                 );
               }
             }
 
             //If you don't have a token, using one of the free GPTs or if you do have a confirmed account, you can proceed now
-            if (!data.token || (account && hasCharacters)) {
+            if ( hasCharacters) {
               // Construct promptConfig from the received data
               const promptConfig = {
                 token: data.token, //may be null
