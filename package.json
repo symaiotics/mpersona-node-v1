@@ -1,6 +1,6 @@
 {
   "name": "mpersona-node",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "Interact with persistent evolving personas",
   "main": "index.js",
   "scripts": {},
@@ -34,6 +34,7 @@
     "helmet": "^7.0.0",
     "jsdom": "^22.1.0",
     "jsonwebtoken": "^9.0.1",
+    "jszip": "^3.10.1",
     "mammoth": "^1.6.0",
     "mongoose": "^7.3.4",
     "multer": "^1.4.5-lts.1",

@@ -26,6 +26,7 @@ var AccountSchema = new mongoose.Schema(
       default: process.env.CHARACTERS_RESERVE_DEFAULT,
     },
     charactersUsed: { type: Number, required: false, default: 0 },
+    ownCharactersUsed: { type: Number, required: false, default: 0 }, //Track the characters used with own API keys
 
     //BYOK
     openAiApiKey: { type: String, required: false },
