@@ -229,6 +229,44 @@ exports.accountOwn = async function (req, res, next) {
   }
 };
 
+
+
+exports.accountOwnUpdate = async function (req, res, next) {
+  try {
+    const username = req.tokenDecoded.username;
+    let accountData = req.body.account || {};
+    
+    if (accountData.username !== username) {
+      // Reject if the username in the body does not match the username from the token
+      return res.status(403).json({ message: "Usernames do not match.", payload: null });
+    }
+
+    // Load the account info
+    const account = await Account.findOne({ username: username, status: "active" });
+    if (!account) {
+      return res.status(404).json({ message: "No active account found", payload: null });
+    }
+
+    // Update the fields which have changed, excluding the username
+    for (const key in accountData) {
+      if (accountData.hasOwnProperty(key) && key !== 'username' && account[key] !== accountData[key]) {
+        account[key] = accountData[key];
+      }
+    }
+
+    // Save the updated account
+    const updateResult = await account.save();
+
+    if (updateResult) {
+      res.status(200).json({ message: "Account updated", payload: updateResult });
+    } else {
+      res.status(500).json({ message: "Error updating account", payload: null });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Own User Managed Account Functions
 exports.accountOwnDelete = async function (req, res, next) {
   try {

@@ -10,6 +10,7 @@ router.post('/mailingList', accountsController.joinMailingList);
 
 //Manage Accounts
 router.get('/own',  [isAuthenticated, renewToken], accountsController.accountOwn); //Returns account info
+router.post('/own/update',  [isAuthenticated], accountsController.accountOwnUpdate); //Deletes account
 router.post('/own/delete',  [isAuthenticated], accountsController.accountOwnDelete); //Deletes account
 
 //Manage Data
