@@ -5,51 +5,56 @@ const OpenAI = require("openai");
 const Anthropic = require("@anthropic-ai/sdk");
 const { OpenAIClient, AzureKeyCredential } = require("@azure/openai");
 
-//User mananagement for API keys and user tokens
+// User management for API keys and user tokens
 const Account = require("../models/account");
 const { authenticateAndDecode } = require("../middleware/verify");
 
 async function verifyTokenAndAccount(token) {
-  return new Promise(async (resolve, reject) => {
-    try {
-      let tokenDecoded = authenticateAndDecode(token);
-      // console.log("tokenDecoded", tokenDecoded);
-      if (tokenDecoded) {
-        const account = await Account.findOne({
-          username: tokenDecoded.username,
-        });
-        if (account) resolve(account);
-        else resolve(null);
-      } else {
-         resolve(null);
-      }
-    } catch (error) {
-      reject(error);
-    }
-  });
+  try {
+    const tokenDecoded = authenticateAndDecode(token);
+    if (!tokenDecoded) return null;
+    return await Account.findOne({ username: tokenDecoded.username });
+  } catch (error) {
+    throw error;
+  }
 }
 
 async function incrementUsedCharacters(account, characters) {
   try {
+    // console.log("incrementUsedCharacters", characters);
     await Account.updateOne(
       { uuid: account.uuid },
-      { $set: { charactersUsed: account.charactersUsed + characters } }
+      { $inc: { charactersUsed: characters } }
     );
-  } catch (error) {}
+  } catch (error) {
+    console.error("Error incrementing used characters:", error);
+  }
+}
+
+async function incrementOwnUsedCharacters(account, characters) {
+  try {
+    // console.log("incrementOwnUsedCharacters", characters);
+    await Account.updateOne(
+      { uuid: account.uuid },
+      { $inc: { ownCharactersUsed: characters } }
+    );
+  } catch (error) {
+    console.error("Error incrementing own used characters:", error);
+  }
 }
 
 // Establish the AI Services
 const services = {
-  openAi: !!process.env.OPENAI_API_KEY,
-  azureOpenAi: !!process.env.AZURE_OPENAI_KEY,
-  anthropic: !!process.env.ANTHROPIC_API_KEY,
+  openAi: process.env.OPENAI_API_KEY !== undefined && process.env.OPENAI_API_KEY !== '',
+  azureOpenAi: process.env.AZURE_OPENAI_KEY !== undefined && process.env.AZURE_OPENAI_KEY !== '',
+  anthropic: process.env.ANTHROPIC_API_KEY !== undefined && process.env.ANTHROPIC_API_KEY !== '',
 };
 
 // Clients for AI services
-const openai = services.openAi
+const openAiClient = services.openAi
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
-const anthropic = services.anthropic
+const anthropicClient = services.anthropic
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null;
 const azureOpenAiClient = services.azureOpenAi
@@ -78,6 +83,7 @@ const createWebSocketServer = (server) => {
 
   const handlePrompt = async (promptConfig) => {
     const {
+      account,
       provider,
       uuid,
       session,
@@ -107,7 +113,7 @@ const createWebSocketServer = (server) => {
 
     try {
       if (services.openAi && provider === "openAi") {
-        const responseStream = await handleOpenAiPrompt({
+        const responseStream = await handleOpenAiPrompt(account, {
           model,
           messages,
           temperature: parseFloat(temperature) || 0.5,
@@ -115,7 +121,7 @@ const createWebSocketServer = (server) => {
         });
         await handlePromptResponse(responseStream, provider, uuid, session);
       } else if (services.anthropic && provider === "anthropic") {
-        const responseStream = await handleAnthropicPrompt({
+        const responseStream = await handleAnthropicPrompt(account, {
           model,
           messages,
           temperature: parseFloat(temperature) || 0.5,
@@ -123,9 +129,14 @@ const createWebSocketServer = (server) => {
         });
         await handlePromptResponse(responseStream, provider, uuid, session);
       } else if (services.azureOpenAi && provider === "azureOpenAi") {
-        const responseStream = await handleAzureOpenAiPrompt(model, messages, {
-          temperature: parseFloat(temperature) || 0.5,
-        });
+        const responseStream = await handleAzureOpenAiPrompt(
+          account,
+          model,
+          messages,
+          {
+            temperature: parseFloat(temperature) || 0.5,
+          }
+        );
         const stream = Readable.from(responseStream);
         handleAzureStream(stream, uuid, session);
       } else {
@@ -144,12 +155,18 @@ const createWebSocketServer = (server) => {
     }
   };
 
-  const handleOpenAiPrompt = async (promptConfig) => {
-    const responseStream = await openai.chat.completions.create(promptConfig);
+  const handleOpenAiPrompt = async (account, promptConfig) => {
+    let client = openAiClient;
+    if (account?.openAiApiKey)
+      client = new OpenAI({ apiKey: account.openAiApiKey });
+    const responseStream = await client.chat.completions.create(promptConfig);
     return responseStream;
   };
 
-  const handleAnthropicPrompt = async (promptConfig) => {
+  const handleAnthropicPrompt = async (account, promptConfig) => {
+    let client = anthropicClient;
+    if (account?.anthropicApiKey)
+      client = new Anthropic({ apiKey: account.anthropicApiKey });
     let anthropicPrompt = {
       model: promptConfig.model,
       temperature: promptConfig.temperature,
@@ -157,15 +174,26 @@ const createWebSocketServer = (server) => {
     };
     anthropicPrompt.prompt = formatAnthropic(promptConfig.messages);
     anthropicPrompt.max_tokens_to_sample = 4096;
-    console.log("promptConfig.messages", promptConfig.messages);
-    console.log("anthropicPrompt", anthropicPrompt);
-    const responseStream = await anthropic.completions.create(anthropicPrompt);
+    // console.log("promptConfig.messages", promptConfig.messages);
+    // console.log("anthropicPrompt", anthropicPrompt);
+    const responseStream = await client.completions.create(anthropicPrompt);
     return responseStream;
   };
 
-  const handleAzureOpenAiPrompt = async (model, messages, promptConfig) => {
-    // console.log({ model, messages, promptConfig });
-    const responseStream = await azureOpenAiClient.streamChatCompletions(
+  const handleAzureOpenAiPrompt = async (
+    account,
+    model,
+    messages,
+    promptConfig
+  ) => {
+    let client = azureOpenAiClient;
+    if (account?.azureOpenAiApiKey && account?.azureOpenAiApiEndpoint) {
+      client = new OpenAIClient(
+        azure.azureOpenAiApiEndpoint,
+        new AzureKeyCredential(azure.azureOpenAiApiKey)
+      );
+    }
+    const responseStream = await client.streamChatCompletions(
       model,
       messages,
       promptConfig
@@ -236,92 +264,58 @@ const createWebSocketServer = (server) => {
 
   // WebSocket server event handlers
   wss.on("connection", (ws) => {
-    // Establish a unique ID for this client
     ws.uuid = uuidv4();
-    clients[ws.uuid] = ws; // Store the WebSocket instance by UUID
+    clients[ws.uuid] = ws;
     ws.send(JSON.stringify({ uuid: ws.uuid }));
     console.log(`Client connected ${ws.uuid}`);
 
     ws.on("message", async (message) => {
       try {
         const data = JSON.parse(message);
-        if (data.uuid) {
-          if (data.type === "ping") {
-            sendToClient(data.uuid, data.session, "pong");
-          } else if (data.type === "prompt") {
-            //Manage the tokens associated with the input
-            //Only constrained on data in, not data out
-            let account = null;
-            let hasCharacters = true;
+        if (!data.uuid) {
+          ws.send(JSON.stringify({ message: "UUID is missing from the message" }));
+          return;
+        }
 
-            if (data.token) account = await verifyTokenAndAccount(data.token);
-            console.log("Account", account);
-            //Count the text characters used and add them to the account
+        if (data.type === "ping") {
+          sendToClient(data.uuid, data.session, "pong");
+          return;
+        }
 
-            if (account) {
-              if (!account.characterReserve) account.characterReserve = process.env.CHARACTERS_RESERVE_DEFAULT;
-              if (!account.charactersUsed) account.charactersUsed = 0;
+        if (data.type !== "prompt") {
+          sendToClient(data.uuid, data.session, "ERROR", "Unrecognized message type");
+          return;
+        }
 
-              console.log("account",account);
-              let messageLength = 0;
-              if (data.messageHistory)
-              //Read the text content
-                messageLength = data.messageHistory.reduce((sum, obj) => {
-                  if (typeof obj.content === "string") {
-                    return sum + obj.content.length;
-                  }
-                  return sum;
-                }, 0);
-              else
-                messageLength =
-                  data.userPrompt.length + data.systemPrompt.length;
+        // Handle prompt message type
+        let account = null;
+        let hasCharacters = true;
 
-              if (account.charactersUsed < account.characterReserve) {
-                incrementUsedCharacters(account, messageLength);
-                //proceeed with prompt
-              } else {
-                hasCharacters = false;
-                sendToClient(
-                  data.uuid,
-                  data.session,
-                  "ERROR",
-                  "You've used your entire reserve of characters. Add your own API key to continue to use this service freely."
-                );
-              }
-            }
+        if (data.token) account = await verifyTokenAndAccount(data.token);
+        // console.log("Account", account);
 
-            //If you don't have a token, using one of the free GPTs or if you do have a confirmed account, you can proceed now
-            if ( hasCharacters) {
-              // Construct promptConfig from the received data
-              const promptConfig = {
-                token: data.token, //may be null
-                username: data.username, //may be null
+        const messageLength = calculateMessageLength(data);
 
-                uuid: data.uuid,
-                session: data.session,
-                provider: data.provider || "openAi",
-                model: data.model || "gpt-4",
-                temperature: data.temperature,
-                systemPrompt: data.systemPrompt,
-                userPrompt: data.userPrompt,
-                messageHistory: data.messageHistory,
-                knowledgeSetUuids: data.knowledgeSetUuids,
-              };
-              // Call handlePrompt with the constructed promptConfig
-              handlePrompt(promptConfig);
-            }
+        let useOwnKey = checkIfUsingOwnKey(account, data.provider);
+        if (useOwnKey) {
+          incrementOwnUsedCharacters(account, messageLength);
+        } else {
+          if (account && account.charactersUsed < account.characterReserve) {
+            incrementUsedCharacters(account, messageLength);
           } else {
+            hasCharacters = false;
             sendToClient(
               data.uuid,
               data.session,
               "ERROR",
-              "Unrecognized message type"
+              "You've used your entire reserve of characters. Add your own API key to continue to use this service freely."
             );
           }
-        } else {
-          ws.send(
-            JSON.stringify({ message: "UUID is missing from the message" })
-          );
+        }
+
+        if (hasCharacters) {
+          const promptConfig = buildPromptConfig(data, account);
+          handlePrompt(promptConfig);
         }
       } catch (error) {
         console.error("Failed to parse message:", error);
@@ -333,6 +327,36 @@ const createWebSocketServer = (server) => {
       delete clients[ws.uuid];
     });
   });
+
+  function calculateMessageLength(data) {
+    if (data.messageHistory) {
+      return data.messageHistory.reduce((sum, obj) => sum + (typeof obj.content === "string" ? obj.content.length : 0), 0);
+    } else {
+      return (data.userPrompt?.length || 0) + (data.systemPrompt?.length || 0);
+    }
+  }
+
+  function checkIfUsingOwnKey(account, provider) {
+    return (provider === "openAi" && account?.openAiApiKey) ||
+           (provider === "anthropic" && account?.anthropicApiKey) ||
+           (provider === "azureOpenAi" && account?.azureOpenAiApiKey && account?.azureOpenAiApiEndpoint);
+  }
+
+  function buildPromptConfig(data, account) {
+    return {
+      account,
+      uuid: data.uuid,
+      session: data.session,
+      provider: data.provider || "openAi",
+      model: data.model || "gpt-4",
+      temperature: data.temperature,
+      systemPrompt: data.systemPrompt,
+      userPrompt: data.userPrompt,
+      messageHistory: data.messageHistory,
+      knowledgeSetUuids: data.knowledgeSetUuids,
+    };
+  }
+
 
   return { wss, sendToClient, handlePrompt };
 };
