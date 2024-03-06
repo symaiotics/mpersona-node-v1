@@ -8,7 +8,7 @@ const { OpenAIClient, AzureKeyCredential } = require("@azure/openai");
 // User management for API keys and user tokens
 const Account = require("../models/account");
 const { authenticateAndDecode } = require("../middleware/verify");
- 
+
 async function incrementUsedCharacters(account, characters) {
   try {
     // console.log("incrementUsedCharacters", characters);
@@ -137,7 +137,13 @@ const handlePrompt = async (promptConfig, sendToClient) => {
           temperature: parseFloat(temperature) || 0.5,
           stream: true,
         });
-        await handlePromptResponse(responseStream, provider, uuid, session, sendToClient);
+        await handlePromptResponse(
+          responseStream,
+          provider,
+          uuid,
+          session,
+          sendToClient
+        );
         break;
       case "anthropic":
         if (!services.anthropic) break;
@@ -150,7 +156,13 @@ const handlePrompt = async (promptConfig, sendToClient) => {
           temperature: parseFloat(temperature) || 0.5,
           stream: true,
         });
-        await handlePromptResponse(responseStream, provider, uuid, session, sendToClient);
+        await handlePromptResponse(
+          responseStream,
+          provider,
+          uuid,
+          session,
+          sendToClient
+        );
         break;
       case "azureOpenAi":
         if (!services.azureOpenAi) break;
@@ -194,16 +206,40 @@ const handleAnthropicPrompt = async (account, promptConfig) => {
   let client = anthropicClient;
   if (account?.anthropicApiKey)
     client = new Anthropic({ apiKey: account.anthropicApiKey });
-  let anthropicPrompt = {
-    model: promptConfig.model,
-    temperature: promptConfig.temperature,
-    stream: true,
-  };
-  anthropicPrompt.prompt = formatAnthropic(promptConfig.messages);
-  anthropicPrompt.max_tokens_to_sample = 4096;
-  const responseStream = await client.completions.create(anthropicPrompt);
+  console.log("Messages", promptConfig.messages)
+  let anthropicPrompt = convertArray(promptConfig.messages)
+  console.log("anthropicPrompt", anthropicPrompt)
+  anthropicPrompt.model=  promptConfig.model;
+  anthropicPrompt.max_tokens=  4096;
+  anthropicPrompt.stream = true;
+  anthropicPrompt.temperature = promptConfig.temperature || 0.5;
+  
+
+  console.log('Anthropic Prompt', anthropicPrompt)
+  const responseStream = await client.messages.create(anthropicPrompt);
   return responseStream;
 };
+
+function convertArray(array) {
+  let result = {
+    system: null,
+    messages: []
+  };
+
+  array.forEach((item, index) => {
+    if (index === 0 && item.role === 'system') {
+      // If the first item has role 'system', store its content separately
+      result.system = item.content;
+    } else {
+      // For all other items, convert 'system' to 'assistant'
+      let role = item.role === 'system' ? 'assistant' : item.role;
+      // Add the message object to the messages array
+      result.messages.push({ role: role, content: item.content });
+    }
+  });
+
+  return result;
+}
 
 const handleAzureOpenAiPrompt = async (
   account,
@@ -230,19 +266,23 @@ const handlePromptResponse = async (
   responseStream,
   provider,
   uuid,
-  session, 
+  session,
   sendToClient
 ) => {
   for await (const part of responseStream) {
     try {
+       console.log(part)
       if (provider === "openAi" && part?.choices?.[0]?.delta?.content) {
         sendToClient(uuid, session, "message", part.choices[0].delta.content);
       } else if (
-        provider === "anthropic" &&
-        part.completion &&
-        !part.stop_reason
+        provider === "anthropic" && part.type != 'message_stop'
+         
+         
       ) {
-        sendToClient(uuid, session, "message", part.completion);
+        // console.log('part', part)
+        let text = part?.content_block?.text || part?.delta?.text || "";
+        
+        sendToClient(uuid, session, "message", text);
       } else {
         sendToClient(uuid, session, "EOM", null);
       }
@@ -273,21 +313,21 @@ const handleAzureStream = (stream, uuid, session, sendToClient) => {
   );
 };
 
-function formatAnthropic(messageHistory) {
-  let anthropicString = "";
-  messageHistory.forEach((message, index) => {
-    const prompt =
-      message.role === "system"
-        ? index === 0
-          ? ""
-          : Anthropic.AI_PROMPT
-        : Anthropic.HUMAN_PROMPT;
-    anthropicString += prompt + message.content;
-  });
-  anthropicString += Anthropic.AI_PROMPT;
-  return anthropicString; // Return the resulting string
-}
- 
+// function formatAnthropic(messageHistory) {
+//   let anthropicString = "";
+//   messageHistory.forEach((message, index) => {
+//     const prompt =
+//       message.role === "system"
+//         ? index === 0
+//           ? ""
+//           : Anthropic.AI_PROMPT
+//         : Anthropic.HUMAN_PROMPT;
+//     anthropicString += prompt + message.content;
+//   });
+//   anthropicString += Anthropic.AI_PROMPT;
+//   return anthropicString; // Return the resulting string
+// }
+
 module.exports = {
   handlePrompt,
   // Export any other functions that are needed externally
