@@ -8,10 +8,10 @@ const lexiconController = require('../controllers/lexicon');
 router.get('/', [], lexiconController.getLexicon);
 
 //Create / Update
-router.post('/',[isAuthenticated, isAdmin, renewToken], lexiconController.updateLexicon);
+router.post('/',[isAuthenticated,  renewToken], lexiconController.updateLexicon);
 
 //Delete
-router.delete('/', [isAuthenticated, isAdmin, renewToken], lexiconController.deleteLexicon);
+router.delete('/', [isAuthenticated,  renewToken], lexiconController.deleteLexicon);
 
 //export the router back to the index.js page
 module.exports = router;
