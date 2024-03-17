@@ -125,15 +125,21 @@ const handlePrompt = async (promptConfig, sendToClient) => {
     }
     // If the user is not logged in, their token is expired, or they have no matching key, the request is still processed.
     let responseStream;
+    let messages = null;
+    if (messageHistory.length) messages = messageHistory;
+    else
+      messages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ];
+
     switch (provider) {
       case "openAi":
         if (!services.openAi) break;
+
         responseStream = await handleOpenAiPrompt(account, {
           model,
-          messages: messageHistory || [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
+          messages: messages,
           temperature: parseFloat(temperature) || 0.5,
           stream: true,
         });
@@ -149,10 +155,7 @@ const handlePrompt = async (promptConfig, sendToClient) => {
         if (!services.anthropic) break;
         responseStream = await handleAnthropicPrompt(account, {
           model,
-          messages: messageHistory || [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
+          messages:messages,
           temperature: parseFloat(temperature) || 0.5,
           stream: true,
         });
@@ -169,7 +172,7 @@ const handlePrompt = async (promptConfig, sendToClient) => {
         responseStream = await handleAzureOpenAiPrompt(
           account,
           model,
-          messageHistory,
+          messages,
           {
             temperature: parseFloat(temperature) || 0.5,
           }
@@ -206,16 +209,15 @@ const handleAnthropicPrompt = async (account, promptConfig) => {
   let client = anthropicClient;
   if (account?.anthropicApiKey)
     client = new Anthropic({ apiKey: account.anthropicApiKey });
-  console.log("Messages", promptConfig.messages)
-  let anthropicPrompt = convertArray(promptConfig.messages)
-  console.log("anthropicPrompt", anthropicPrompt)
-  anthropicPrompt.model=  promptConfig.model;
-  anthropicPrompt.max_tokens=  4096;
+  console.log("Messages", promptConfig.messages);
+  let anthropicPrompt = convertArray(promptConfig.messages);
+  console.log("anthropicPrompt", anthropicPrompt);
+  anthropicPrompt.model = promptConfig.model;
+  anthropicPrompt.max_tokens = 4096;
   anthropicPrompt.stream = true;
   anthropicPrompt.temperature = promptConfig.temperature || 0.5;
-  
 
-  console.log('Anthropic Prompt', anthropicPrompt)
+  console.log("Anthropic Prompt", anthropicPrompt);
   const responseStream = await client.messages.create(anthropicPrompt);
   return responseStream;
 };
@@ -223,16 +225,16 @@ const handleAnthropicPrompt = async (account, promptConfig) => {
 function convertArray(array) {
   let result = {
     system: null,
-    messages: []
+    messages: [],
   };
 
   array.forEach((item, index) => {
-    if (index === 0 && item.role === 'system') {
+    if (index === 0 && item.role === "system") {
       // If the first item has role 'system', store its content separately
       result.system = item.content;
     } else {
       // For all other items, convert 'system' to 'assistant'
-      let role = item.role === 'system' ? 'assistant' : item.role;
+      let role = item.role === "system" ? "assistant" : item.role;
       // Add the message object to the messages array
       result.messages.push({ role: role, content: item.content });
     }
@@ -271,17 +273,13 @@ const handlePromptResponse = async (
 ) => {
   for await (const part of responseStream) {
     try {
-       console.log(part)
+      console.log(part);
       if (provider === "openAi" && part?.choices?.[0]?.delta?.content) {
         sendToClient(uuid, session, "message", part.choices[0].delta.content);
-      } else if (
-        provider === "anthropic" && part.type != 'message_stop'
-         
-         
-      ) {
+      } else if (provider === "anthropic" && part.type != "message_stop") {
         // console.log('part', part)
         let text = part?.content_block?.text || part?.delta?.text || "";
-        
+
         sendToClient(uuid, session, "message", text);
       } else {
         sendToClient(uuid, session, "EOM", null);
