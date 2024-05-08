@@ -131,7 +131,7 @@ exports.cleanCollectionsByKeyword = async function (req, res, next) {
     );
     next(
       ApiError.internal(
-        "An error occurred while deleting documents with 'fintrac' in email or username across collections"
+        "An error occurred while deleting documents with 'subject' in email or username across collections"
       )
     );
   }
