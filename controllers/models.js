@@ -8,6 +8,9 @@ exports.bootstrapModels = async function (req, res, next) {
         let defaultModels = [];
 
         //Bootstrap a set of default modles based on your configuration
+        
+
+        if (process.env.OPENAI_API_KEY) defaultModels.push({ provider: 'openAi', maxTokens: 128000, per1kInput: 0.01, per1kOutput: 0.03, model: "gpt-4o", name: {en:"GPT-4o", fr:"GPT-4o"}  });
         if (process.env.OPENAI_API_KEY) defaultModels.push({ provider: 'openAi', maxTokens: 128000, per1kInput: 0.01, per1kOutput: 0.03, model: "gpt-4-1106-preview", name: {en:"OpenAI GPT-4 Turbo (128k)", fr:"OpenAI GPT-4 Turbo (128k)"}  });
         if (process.env.ANTHROPIC_API_KEY) {
             defaultModels.push({ provider: 'anthropic', maxTokens: 100000, per1kInput: 0.00163, per1kOutput: 0.00551, model: "claude-instant-1.2", name: {en:"Claude 2.1 Instant", fr:"Claude 2.1 Instant"}  });
