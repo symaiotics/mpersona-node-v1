@@ -44,6 +44,10 @@ const services = {
   anthropic:
     process.env.ANTHROPIC_API_KEY !== undefined &&
     process.env.ANTHROPIC_API_KEY !== "",
+  mistral:
+    process.env.MISTRAL_API_KEY !== undefined &&
+    process.env.MISTRAL_API_KEY !== "",
+
 };
 
 // Clients for AI services
@@ -60,12 +64,29 @@ const azureOpenAiClient = services.azureOpenAi
     )
   : null;
 
+
+// Initialize Mistral client asynchronously
+let mistralClient;
+if (process.env.MISTRAL_API_KEY) {
+  import('@mistralai/mistralai').then(mistralModule => {
+    mistralClient = new mistralModule.default(process.env.MISTRAL_API_KEY);
+  }).catch(error => {
+    console.error('Failed to import MistralClient:', error);
+  });
+}
+
+
+  // const mistralClient = process.env.MISTRAL_API_KEY
+  // ? new MistralClient(process.env.MISTRAL_API_KEY)
+  // : null;
+
 // Helper functions
 const hasMatchingApiKey = (account, provider) => {
   return (
     (provider === "openAi" && account?.openAiApiKey) ||
     (provider === "anthropic" && account?.anthropicApiKey) ||
-    (provider === "azureOpenAi" && account?.azureOpenAiApiKey)
+    (provider === "azureOpenAi" && account?.azureOpenAiApiKey) ||
+    (provider === "mistral" && account?.mistralApiKey) 
   );
 };
 
@@ -87,6 +108,7 @@ const calculateMessageLength = (data) => {
 };
 
 const handlePrompt = async (promptConfig, sendToClient) => {
+  // console.log('promptConfig', promptConfig)
   const {
     account,
     provider,
@@ -180,6 +202,24 @@ const handlePrompt = async (promptConfig, sendToClient) => {
         const stream = Readable.from(responseStream);
         handleAzureStream(stream, uuid, session, sendToClient);
         break;
+
+        case "mistral":
+          if (!services.mistral) break;
+          // console.log("mistral messages", messages)
+          responseStream = await handleMistralPrompt(account, {
+            model,
+            messages: messages.map(msg => ({ role: msg.role, content: msg.content })),
+          });
+          await handlePromptResponse(
+            responseStream,
+            provider,
+            uuid,
+            session,
+            sendToClient
+          );
+          break;
+
+
       default:
         sendToClient(
           uuid,
@@ -209,19 +249,32 @@ const handleAnthropicPrompt = async (account, promptConfig) => {
   let client = anthropicClient;
   if (account?.anthropicApiKey)
     client = new Anthropic({ apiKey: account.anthropicApiKey });
-  console.log("Messages", promptConfig.messages);
+  // console.log("Messages", promptConfig.messages);
   let anthropicPrompt = convertArray(promptConfig.messages);
-  console.log("anthropicPrompt", anthropicPrompt);
+  // console.log("anthropicPrompt", anthropicPrompt);
   anthropicPrompt.model = promptConfig.model;
   anthropicPrompt.max_tokens = 4096;
   anthropicPrompt.stream = true;
   anthropicPrompt.temperature = promptConfig.temperature || 0.5;
 
-  console.log("Anthropic Prompt", anthropicPrompt);
+  // console.log("Anthropic Prompt", anthropicPrompt);
   const responseStream = await client.messages.create(anthropicPrompt);
   return responseStream;
 };
 
+const handleMistralPrompt = async (account, promptConfig) => {
+  let client = mistralClient;
+  if(client)
+    {
+
+  if (account?.mistralApiKey)
+    client = new MistralClient({ apiKey: account.mistralApiKey });
+  const chatStreamResponse = await mistralClient.chatStream(promptConfig);
+  return chatStreamResponse;
+}
+
+};
+ 
 function convertArray(array) {
   let result = {
     system: null,
@@ -273,15 +326,18 @@ const handlePromptResponse = async (
 ) => {
   for await (const part of responseStream) {
     try {
-      console.log(part);
       if (provider === "openAi" && part?.choices?.[0]?.delta?.content) {
         sendToClient(uuid, session, "message", part.choices[0].delta.content);
       } else if (provider === "anthropic" && part.type != "message_stop") {
         // console.log('part', part)
         let text = part?.content_block?.text || part?.delta?.text || "";
-
         sendToClient(uuid, session, "message", text);
-      } else {
+      } 
+        // Add a condition for Mistral
+      else if (provider === "mistral" && part.choices[0].delta.content !== undefined && !part.choices[0].finish_reason  ) {
+          sendToClient(uuid, session, "message", part.choices[0].delta.content);
+          }
+      else {
         sendToClient(uuid, session, "EOM", null);
       }
     } catch (error) {

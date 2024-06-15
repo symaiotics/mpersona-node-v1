@@ -1,6 +1,6 @@
 {
   "name": "mpersona-node",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "Interact with persistent evolving personas",
   "main": "index.js",
   "scripts": {},
@@ -23,6 +23,7 @@
     "@anthropic-ai/sdk": "^0.16.1",
     "@azure/openai": "^1.0.0-beta.11",
     "@azure/storage-blob": "^12.15.0",
+    "@mistralai/mistralai": "^0.5.0",
     "archiver": "^6.0.1",
     "axios": "^1.4.0",
     "bcrypt": "^5.1.1",

@@ -9,7 +9,8 @@ exports.bootstrapModels = async function (req, res, next) {
 
         //Bootstrap a set of default modles based on your configuration
         
-
+        if (process.env.MISTRAL_API_KEY) defaultModels.push({ provider: 'mistral', maxTokens: 128000, per1kInput: 0.07, per1kOutput: 0.03, model: "open-mixtral-8x7b", name: {en:"Mixtral 8x7B", fr:"Mixtral 8x7B"}  });
+        if (process.env.MISTRAL_API_KEY) defaultModels.push({ provider: 'mistral', maxTokens: 128000, per1kInput: 0.07, per1kOutput: 0.03, model: "open-mixtral-8x22b", name: {en:"Mixtral 8x22B", fr:"Mixtral 8x22B"}  });
         if (process.env.OPENAI_API_KEY) defaultModels.push({ provider: 'openAi', maxTokens: 128000, per1kInput: 0.01, per1kOutput: 0.03, model: "gpt-4o", name: {en:"GPT-4o", fr:"GPT-4o"}  });
         if (process.env.OPENAI_API_KEY) defaultModels.push({ provider: 'openAi', maxTokens: 128000, per1kInput: 0.01, per1kOutput: 0.03, model: "gpt-4-1106-preview", name: {en:"OpenAI GPT-4 Turbo (128k)", fr:"OpenAI GPT-4 Turbo (128k)"}  });
         if (process.env.ANTHROPIC_API_KEY) {

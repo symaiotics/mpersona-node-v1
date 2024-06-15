@@ -33,6 +33,7 @@ var AccountSchema = new mongoose.Schema(
     anthropicApiKey: { type: String, required: false },
     azureOpenAiApiKey: { type: String, required: false },
     azureOpenAiApiEndpoint: { type: String, required: false },
+    mistralApiKey: { type: String, required: false },
 
     //Subscription, if you want to add this
     subscriptionType: { type: String, default: "free", required: false },
