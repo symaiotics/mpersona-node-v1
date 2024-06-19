@@ -10,6 +10,7 @@ const ModelSchema = new Schema({
 
     //Textual name and description
     name: localizedField('name'),
+    concurrentInstances:{type:Number},
     provider: {type:String},
     maxTokens: {type:Number},
     per1kOutput: {type:Number},

@@ -9,18 +9,18 @@ exports.bootstrapModels = async function (req, res, next) {
 
         //Bootstrap a set of default modles based on your configuration
         
-        if (process.env.MISTRAL_API_KEY) defaultModels.push({ provider: 'mistral', maxTokens: 128000, per1kInput: 0.07, per1kOutput: 0.03, model: "open-mixtral-8x7b", name: {en:"Mixtral 8x7B", fr:"Mixtral 8x7B"}  });
-        if (process.env.MISTRAL_API_KEY) defaultModels.push({ provider: 'mistral', maxTokens: 128000, per1kInput: 0.07, per1kOutput: 0.03, model: "open-mixtral-8x22b", name: {en:"Mixtral 8x22B", fr:"Mixtral 8x22B"}  });
-        if (process.env.OPENAI_API_KEY) defaultModels.push({ provider: 'openAi', maxTokens: 128000, per1kInput: 0.01, per1kOutput: 0.03, model: "gpt-4o", name: {en:"GPT-4o", fr:"GPT-4o"}  });
-        if (process.env.OPENAI_API_KEY) defaultModels.push({ provider: 'openAi', maxTokens: 128000, per1kInput: 0.01, per1kOutput: 0.03, model: "gpt-4-1106-preview", name: {en:"OpenAI GPT-4 Turbo (128k)", fr:"OpenAI GPT-4 Turbo (128k)"}  });
+        if (process.env.OPENAI_API_KEY) defaultModels.push({  concurrentInstances: 20, provider: 'openAi', maxTokens: 128000, per1kInput: 0.01, per1kOutput: 0.03, model: "gpt-4-1106-preview", name: {en:"OpenAI GPT-4 Turbo (128k)", fr:"OpenAI GPT-4 Turbo (128k)"}  });
+        if (process.env.OPENAI_API_KEY) defaultModels.push({ concurrentInstances: 20, provider: 'openAi', maxTokens: 128000, per1kInput: 0.01, per1kOutput: 0.03, model: "gpt-4o", name: {en:"OpenAI GPT-4o", fr:"OpenAI GPT-4o"}  });
         if (process.env.ANTHROPIC_API_KEY) {
-            defaultModels.push({ provider: 'anthropic', maxTokens: 100000, per1kInput: 0.00163, per1kOutput: 0.00551, model: "claude-instant-1.2", name: {en:"Claude 2.1 Instant", fr:"Claude 2.1 Instant"}  });
-            defaultModels.push({ provider: 'anthropic', maxTokens: 200000, per1kInput: 0.008, per1kOutput: 0.024, model: "claude-2.1", name: {en:"Claude 2.1", fr:"Claude 2.1"} });
-            defaultModels.push({ provider: 'anthropic', maxTokens: 200000, per1kInput: 0.008, per1kOutput: 0.024, model: "claude-3-opus-20240229", name: {en:"Claude 3 Opus", fr:"Claude 3 Opus"} });
-            defaultModels.push({ provider: 'anthropic', maxTokens: 200000, per1kInput: 0.008, per1kOutput: 0.024, model: "claude-3-sonnet-20240229", name: {en:"Claude 3 Sonnet", fr:"Claude 3 Sonnet"} });
-            defaultModels.push({ provider: 'anthropic', maxTokens: 200000, per1kInput: 0.008, per1kOutput: 0.024, model: "claude-3-haiku-20240307", name: {en:"Claude 3 Haiku", fr:"Claude 3 Haiku"} });
+            // defaultModels.push({ provider: 'anthropic', maxTokens: 100000, per1kInput: 0.00163, per1kOutput: 0.00551, model: "claude-instant-1.2", name: {en:"Claude 2.1 Instant", fr:"Claude 2.1 Instant"}  });
+            // defaultModels.push({ provider: 'anthropic', maxTokens: 200000, per1kInput: 0.008, per1kOutput: 0.024, model: "claude-2.1", name: {en:"Claude 2.1", fr:"Claude 2.1"} });
+            defaultModels.push({  concurrentInstances: 5, provider: 'anthropic', maxTokens: 200000, per1kInput: 0.008, per1kOutput: 0.024, model: "claude-3-opus-20240229", name: {en:"Claude 3 Opus", fr:"Claude 3 Opus"} });
+            defaultModels.push({  concurrentInstances: 5, provider: 'anthropic', maxTokens: 200000, per1kInput: 0.008, per1kOutput: 0.024, model: "claude-3-sonnet-20240229", name: {en:"Claude 3 Sonnet", fr:"Claude 3 Sonnet"} });
+            defaultModels.push({   concurrentInstances: 5, provider: 'anthropic', maxTokens: 200000, per1kInput: 0.008, per1kOutput: 0.024, model: "claude-3-haiku-20240307", name: {en:"Claude 3 Haiku", fr:"Claude 3 Haiku"} });
         }
-        if (process.env.AZURE_OPENAI_KEY) defaultModels.push({ provider: 'azureOpenAi', maxTokens: 128000, per1kInput: 0.04, per1kOutput: 0.08, model: "gpt-4", name: {en:"Azure GPT-4 (128k)", fr:"Azure GPT-4 (128k)"}  });
+        if (process.env.MISTRAL_API_KEY) defaultModels.push({  concurrentInstances: 10, provider: 'mistral', maxTokens: 128000, per1kInput: 0.07, per1kOutput: 0.03, model: "open-mixtral-8x7b", name: {en:"Mixtral 8x7B", fr:"Mixtral 8x7B"}  });
+        if (process.env.MISTRAL_API_KEY) defaultModels.push({  concurrentInstances: 10, provider: 'mistral', maxTokens: 128000, per1kInput: 0.07, per1kOutput: 0.03, model: "open-mixtral-8x22b", name: {en:"Mixtral 8x22B", fr:"Mixtral 8x22B"}  });
+        if (process.env.AZURE_OPENAI_KEY) defaultModels.push({  concurrentInstances: 10, provider: 'azureOpenAi', maxTokens: 128000, per1kInput: 0.04, per1kOutput: 0.08, model: "gpt-4", name: {en:"Azure GPT-4 (128k)", fr:"Azure GPT-4 (128k)"}  });
 
         // Prepare an array to hold models that do not exist in the collection
         let newModels = [];
@@ -56,7 +56,7 @@ exports.bootstrapModels = async function (req, res, next) {
 exports.getModels = async function (req, res, next) {
     try {
         let baseQuery = { status: 'active' };
-        const models = await Model.find(baseQuery).sort({ 'momentUpdated': 1 });
+        const models = await Model.find(baseQuery);
         res.status(200).json({ message: "Here are all the active Models", payload: models });
     } catch (error) {
         next(ApiError.internal("An error occurred while retrieving Models"));
