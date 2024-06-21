@@ -17,8 +17,6 @@ exports.getStats = async function (req, res, next) {
         res.status(200).json({
             message: "Here are the counts of active documents",
             payload: {
-                personas: personaCount,
-                accounts: accountCount,
                 version: version // Include the version in the response
             }
         });
