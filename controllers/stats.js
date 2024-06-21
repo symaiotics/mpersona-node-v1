@@ -10,7 +10,7 @@ const packageInfo = require('../package.json');
 
 exports.getStats = async function (req, res, next) {
     try {
-        // Use countDocuments() to get the count of active documents
+        //Get the node version for troubleshooting
         const version = packageInfo.version;
 
         // Send the counts as JSON response
