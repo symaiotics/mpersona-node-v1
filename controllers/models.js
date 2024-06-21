@@ -14,6 +14,7 @@ exports.bootstrapModels = async function (req, res, next) {
         if (process.env.ANTHROPIC_API_KEY) {
             // defaultModels.push({ provider: 'anthropic', maxTokens: 100000, per1kInput: 0.00163, per1kOutput: 0.00551, model: "claude-instant-1.2", name: {en:"Claude 2.1 Instant", fr:"Claude 2.1 Instant"}  });
             // defaultModels.push({ provider: 'anthropic', maxTokens: 200000, per1kInput: 0.008, per1kOutput: 0.024, model: "claude-2.1", name: {en:"Claude 2.1", fr:"Claude 2.1"} });
+            defaultModels.push({  concurrentInstances: 5, provider: 'anthropic', maxTokens: 200000, per1kInput: 0.008, per1kOutput: 0.024, model: "claude-3-5-sonnet-20240620", name: {en:"Claude 3.5 Sonnet", fr:"Claude 3.5 Sonnet"} });
             defaultModels.push({  concurrentInstances: 5, provider: 'anthropic', maxTokens: 200000, per1kInput: 0.008, per1kOutput: 0.024, model: "claude-3-opus-20240229", name: {en:"Claude 3 Opus", fr:"Claude 3 Opus"} });
             defaultModels.push({  concurrentInstances: 5, provider: 'anthropic', maxTokens: 200000, per1kInput: 0.008, per1kOutput: 0.024, model: "claude-3-sonnet-20240229", name: {en:"Claude 3 Sonnet", fr:"Claude 3 Sonnet"} });
             defaultModels.push({   concurrentInstances: 5, provider: 'anthropic', maxTokens: 200000, per1kInput: 0.008, per1kOutput: 0.024, model: "claude-3-haiku-20240307", name: {en:"Claude 3 Haiku", fr:"Claude 3 Haiku"} });
