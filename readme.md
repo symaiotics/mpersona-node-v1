@@ -16,19 +16,22 @@ The Node.js application uses the following key libraries
 ## Configuration
 The application also requires environment variables to operate
 
-- MODE=DEV  //The default mode for testing, which is DEV
-- PORT=3000 //The default port
-- DATASTORE=MongoDB //The default  datastore
-- TIMEOUT=  //The timeout by which a Promise will fail (i.e. 30000 is 30 seconds)
-- JWT_SECRET= //A secret for signing JWT tokens
-- MPERSONA_ATLAS= //A connection string to a valid MongoDB instance. I recommend using an Atlas instance
-- OPEN_API_KEY= //Your API key to interact with your own instance of OpenAI's API
-- AZURE_STORAGE_CONNECTION_STRING = //Your Azure Storage connection string (not key)
-- AZURE_OPENAI_KEY= //Your Azure OpenAI Key
-- AZURE_OPENAI_ENDPOINT=// Your endpoint, in this format https://[].openai.azure.com/
+- NODE_ENV= //DEV or PROD
+- PORT=3000 //Or any port you like
+- DATASTORE=MongoDB //mPersona only runs MongoDB.
+- TIMEOUT=30000 //timeout of requests
+- JWT_SECRET=//Some cryptographically strong secret for signing JWTs
+- MPERSONA_ATLAS=//Connection string
+- AZURE_STORAGE_CONNECTION_STRING=//Storage connection string
+- OPENAI_API_KEY=//OpenAI Key
+- ANTHROPIC_API_KEY=//Anthropic Key
+- AZURE_OPENAI_KEY=//Azure OpenAI Key
+- AZURE_OPENAI_ENDPOINT=//Azure Endpoint
+- MISTRAL_API_KEY=//Mistral Key, if applicable
+- LOG_LEVEL=info
+- CHARACTERS_RESERVE_DEFAULT=10000000
 
 The storage account requires a container named /images to be created and publicly accessible as read only.
-
 
 # Application Server License
 The MIT License (MIT)
